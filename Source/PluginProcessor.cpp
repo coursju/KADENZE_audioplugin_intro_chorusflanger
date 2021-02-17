@@ -363,12 +363,32 @@ void KadenzeChorusFlangerAudioProcessor::getStateInformation (MemoryBlock& destD
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    std::unique_ptr<XmlElement> xml(new XmlElement("FlangerChorus"));
+    xml->setAttribute("DryWet", *mDryWetParameter);
+    xml->setAttribute("Depth", *mDephParameter);
+    xml->setAttribute("Rate", *mRateParameter);
+    xml->setAttribute("PhaseOffset", *mPhaseOffsetParameter);
+    xml->setAttribute("Feedback", *mFeedbackParameter);
+    xml->setAttribute("Type", *mTypeParameter);
+
+    copyXmlToBinary(*xml, destData);
+
 }
 
 void KadenzeChorusFlangerAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
+    *mDryWetParameter = xml->getDoubleAttribute("DryWet");
+    *mDephParameter = xml->getDoubleAttribute("Depth");
+    *mRateParameter = xml->getDoubleAttribute("Rate");
+    *mPhaseOffsetParameter = xml->getDoubleAttribute("PhaseOffset");
+    *mFeedbackParameter = xml->getDoubleAttribute("Feedback");
+    *mTypeParameter = xml->getDoubleAttribute("Type");
+
+
+
 }
 
 //==============================================================================
