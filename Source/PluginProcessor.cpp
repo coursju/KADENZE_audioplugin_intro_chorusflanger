@@ -246,39 +246,76 @@ void KadenzeChorusFlangerAudioProcessor::processBlock (AudioBuffer<float>& buffe
 
     for (int i = 0; i < buffer.getNumSamples(); i++) {
 
-        float lfoOut = sin(2 * 3.14f * mLFOPhase); //M_PI  3.14f
+        //Left
+        float lfoOutLeft = sin(2 * 3.14f * mLFOPhase); //M_PI  3.14f
+        lfoOutLeft *= *mDephParameter;
+
+        //Right
+        float lfoPhaseRight = mLFOPhase + *mPhaseOffsetParameter;
+
+        if (lfoPhaseRight > 1) {
+            lfoPhaseRight -= 1;
+        }
+        float lfoOutRight = sin(2 * 3.14f * mLFOPhase); //M_PI  3.14f
+        lfoOutRight *= *mDephParameter;
+
+        float lfoOutMappedLeft = 0;
+        float lfoOutMappedRight = 0;
+
+        //***chorus***
+        if (*mTypeParameter == 0) {
+             lfoOutMappedLeft = jmap(lfoOutLeft, -1.0f, 1.0f, 0.005f, 0.03f);
+             lfoOutMappedRight = jmap(lfoOutRight, -1.0f, 1.0f, 0.005f, 0.03f);
+        }
+        else {
+             lfoOutMappedLeft = jmap(lfoOutLeft, -1.0f, 1.0f, 0.001f, 0.005f);
+             lfoOutMappedRight = jmap(lfoOutRight, -1.0f, 1.0f, 0.001f, 0.005f);
+        }
+
+        float delayTimeSamplesLeft = getSampleRate() * lfoOutMappedLeft;
+        float delayTimeSamplesRight = getSampleRate() * lfoOutMappedRight;
+
         mLFOPhase += *mRateParameter / getSampleRate();
 
         if (mLFOPhase > 1){
             mLFOPhase -= 1;
         }
 
-        lfoOut *= *mDephParameter;
 
-        float lfoOutMapped = jmap(lfoOut, -1.0f, 1.0f, 0.005f, 0.03f);
 
-        mDelayTimeSmoothed = mDelayTimeSmoothed - 0.001f * (mDelayTimeSmoothed - lfoOutMapped);
-        mDelayTimeInSamples = getSampleRate() * mDelayTimeSmoothed;
+        //mDelayTimeSmoothed = mDelayTimeSmoothed - 0.001f * (mDelayTimeSmoothed - lfoOutMapped);
 
 
         mCircularBufferLeft[mCircularBufferWriteHead] = leftChannel[i] + mFeedbackLeft;
         mCircularBufferRight[mCircularBufferWriteHead] = rightChannel[i] + mFeedbackRight;
 
-        mDelayReadHead = mCircularBufferWriteHead - mDelayTimeInSamples;
-
-        if (mDelayReadHead < 0) {
-            mDelayReadHead += mCircularBufferLenght;
+        float delayReadHeadLeft = mCircularBufferWriteHead - delayTimeSamplesLeft;
+        if (delayReadHeadLeft < 0){
+            delayReadHeadLeft += mCircularBufferLenght;
         }
 
+        float delayReadHeadRight = mCircularBufferWriteHead - delayTimeSamplesRight;
+        if (delayReadHeadRight < 0) {
+            delayReadHeadRight += mCircularBufferLenght;
+        }
+    /*    if (mDelayReadHead < 0) {
+            mDelayReadHead += mCircularBufferLenght;
+        }*/
+
         //interpolation lineaire
-        int readHead_x = (int)mDelayReadHead;
-        int readHead_x1 = readHead_x + 1;
-        float readHeadFloat = mDelayReadHead - readHead_x;
+        int readHeadLeft_x = (int)delayReadHeadLeft;
+        int readHeadLeft_x1 = readHeadLeft_x + 1;
+        float readHeadFloatLeft = delayReadHeadLeft - readHeadLeft_x;
 
-        if (readHead_x1 >= mCircularBufferLenght)readHead_x1 -= mCircularBufferLenght;
+        int readHeadRight_x = (int)delayReadHeadRight;
+        int readHeadRight_x1 = readHeadRight_x + 1;
+        float readHeadFloatRight = delayReadHeadRight - readHeadRight_x;
 
-        float delay_sample_left = lin_interp(mCircularBufferLeft[readHead_x], mCircularBufferLeft[readHead_x1], readHeadFloat);
-        float delay_sample_right = lin_interp(mCircularBufferRight[readHead_x], mCircularBufferRight[readHead_x1], readHeadFloat);
+        if (readHeadLeft_x1 >= mCircularBufferLenght)readHeadLeft_x1 -= mCircularBufferLenght;
+        if (readHeadRight_x1 >= mCircularBufferLenght)readHeadRight_x1 -= mCircularBufferLenght;
+
+        float delay_sample_left = lin_interp(mCircularBufferLeft[readHeadLeft_x], mCircularBufferLeft[readHeadLeft_x1], readHeadFloatLeft);
+        float delay_sample_right = lin_interp(mCircularBufferRight[readHeadRight_x], mCircularBufferRight[readHeadRight_x1], readHeadFloatRight);
 
         //*****
         /*float delay_sample_left = mCircularBufferLeft[(int)mDelayReadHead];
