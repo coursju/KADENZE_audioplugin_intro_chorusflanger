@@ -92,7 +92,7 @@ KadenzeChorusFlangerAudioProcessorEditor::KadenzeChorusFlangerAudioProcessorEdit
 
     mType.setBounds(100, 100, 100, 30);
     mType.addItem("chorus", 1);
-    mType.addItem("flanger", 2);
+    mType.addItem("flanger", 2); 
     addAndMakeVisible(mType);
 
     mType.onChange = [this, typeParameter]{
@@ -100,7 +100,7 @@ KadenzeChorusFlangerAudioProcessorEditor::KadenzeChorusFlangerAudioProcessorEdit
     *typeParameter = mType.getSelectedItemIndex();
     typeParameter->endChangeGesture();
     };
-
+    mType.setSelectedItemIndex(*typeParameter);
 }
 
 KadenzeChorusFlangerAudioProcessorEditor::~KadenzeChorusFlangerAudioProcessorEditor()
